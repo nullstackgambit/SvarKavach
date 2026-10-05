@@ -1,0 +1,9 @@
+# SvarKavach - optional live system-audio capture.
+#
+#   pip install -r requirements-audio.txt
+#
+# Linux additionally needs a PulseAudio-compatible server: pipewire-pulse
+# (standard on modern desktops) or PulseAudio. Windows uses WASAPI loopback
+# and needs nothing extra. macOS has no native loopback device and is not
+# supported without third-party software such as BlackHole.
+SoundCard>=0.4.6

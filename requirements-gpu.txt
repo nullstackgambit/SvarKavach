@@ -1,0 +1,11 @@
+# SvarKavach — CUDA inference.
+# Install INSTEAD OF the onnxruntime pin in requirements.txt:
+#
+#   pip install -r requirements.txt
+#   pip uninstall -y onnxruntime
+#   pip install -r requirements-gpu.txt
+#
+# onnxruntime-gpu requires a matching CUDA/cuDNN runtime on the host.
+# Check the support matrix before pinning:
+#   https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html
+onnxruntime-gpu>=1.20,<2

@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Environment
+.env
+
+# Model weights — large binaries, fetched with scripts/download_models.py
+models/**/*.onnx
+models/**/*.safetensors
+models/**/*.pth
+models/**/*.bin
+models/**/*.part
+
+# Audio: never commit recordings
+sample_audio/**/*.wav
+sample_audio/**/*.flac
+sample_audio/**/*.mp3
+sample_audio/**/*.m4a
+sample_audio/**/*.ogg
+sample_audio/**/*.opus
+sample_audio/**/*.webm
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SvarKavach — Voice Integrity Verification</title>
+<link rel="stylesheet" href="/static/styles.css?v=3" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">SK</div>
+    <div>
+      <h1>SVARKAVACH</h1>
+      <p>Real-Time Voice Integrity Verification</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div id="detectorBadge" class="detector-badge unknown">
+      <span class="label">Detector</span>
+      <strong id="detectorName">—</strong>
+    </div>
+    <div class="conn">
+      <span id="connDot" class="dot" aria-hidden="true"></span>
+      <span id="connText" role="status" aria-live="polite">Disconnected</span>
+    </div>
+  </div>
+</header>
+
+<div id="mockBanner" class="mock-banner" hidden>
+  <strong>MOCK INFERENCE — DEMO ONLY.</strong>
+  Scores are simulated by a deterministic stand-in, not a real anti-spoofing model.
+</div>
+
+<div id="captureBanner" class="capture-banner" hidden>
+  <strong>● CAPTURING SYSTEM AUDIO</strong> —
+  this machine's audio output is being analysed live. Nothing is recorded to disk.
+</div>
+
+<main class="grid">
+  <!-- ─── left column ─────────────────────────────────────── -->
+  <section class="col">
+    <article class="card">
+      <h2>Audio Source</h2>
+      <div class="segmented" role="tablist" aria-label="Audio source">
+        <button type="button" id="srcFile" class="seg active" role="tab"
+                aria-selected="true">Audio file</button>
+        <button type="button" id="srcSystem" class="seg" role="tab"
+                aria-selected="false">System audio (live)</button>
+      </div>
+
+      <div id="filePane">
+        <label class="filepick">
+          <input type="file" id="fileInput" accept="audio/*" />
+          <span>Choose an audio file…</span>
+        </label>
+        <dl class="meta">
+          <div><dt>File</dt><dd id="fileName">—</dd></div>
+          <div><dt>Duration</dt><dd id="fileDuration">—</dd></div>
+          <div><dt>Format</dt><dd id="fileFormat">—</dd></div>
+        </dl>
+      </div>
+
+      <div id="systemPane" hidden>
+        <div class="field">
+          <label for="deviceSelect">Capture device</label>
+          <select id="deviceSelect"><option>Loading…</option></select>
+        </div>
+        <p id="captureHint" class="hint">
+          Captures whatever is playing through this machine's output — a Zoom
+          call, a softphone, a browser meeting.
+        </p>
+      </div>
+
+      <div class="progress" aria-hidden="true"><div id="streamBar"></div></div>
+      <p class="progress-label"><span id="streamPos">0.0</span> s <span id="streamVerb">streamed</span></p>
+      <div class="actions">
+        <button id="startBtn" class="btn primary" disabled>Start Analysis</button>
+        <button id="stopBtn" class="btn" disabled>Stop</button>
+        <button id="resetBtn" class="btn ghost">Reset</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Demo Context</h2>
+      <p class="hint">Contextual risk inputs only. This is <em>not</em> caller identity verification.</p>
+      <div class="field">
+        <label for="ctxChannel">Channel</label>
+        <input id="ctxChannel" type="text" value="zoom-demo" maxlength="64" />
+      </div>
+      <div class="field">
+        <label for="ctxCaller">Caller type</label>
+        <select id="ctxCaller">
+          <option value="executive" selected>Executive</option>
+          <option value="employee">Employee</option>
+          <option value="customer">Customer</option>
+          <option value="unknown">Unknown</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ctxKnown">Known contact</label>
+        <select id="ctxKnown">
+          <option value="true" selected>Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ctxValue">Transaction value (₹)</label>
+        <input id="ctxValue" type="number" min="0" step="10000" value="2500000" />
+      </div>
+    </article>
+
+    <article class="card tech">
+      <h2>Technical Status</h2>
+      <dl class="meta small">
+        <div><dt>WebSocket</dt><dd id="tsWs">Disconnected</dd></div>
+        <div><dt>Audio</dt><dd id="tsAudio">Idle</dd></div>
+        <div><dt>VAD</dt><dd id="tsVad">—</dd></div>
+        <div><dt>Model</dt><dd id="tsModel">—</dd></div>
+        <div><dt>Device</dt><dd id="tsDevice">—</dd></div>
+        <div><dt>Last inference</dt><dd id="tsInfer">—</dd></div>
+        <div><dt>Windows skipped</dt><dd id="tsSkipped">0</dd></div>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ─── right column ────────────────────────────────────── -->
+  <section class="col wide">
+    <article id="riskBanner" class="risk-banner state-idle">
+      <div class="risk-left">
+        <span class="risk-eyebrow">Risk State</span>
+        <span id="riskState" class="risk-state">AWAITING AUDIO</span>
+      </div>
+      <div class="risk-right">
+        <span class="risk-eyebrow">Contextual Risk Score</span>
+        <span id="riskScore" class="risk-score">—</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Live Analysis</h2>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Detector score (this window)</span>
+          <span id="statCurrent" class="stat-value">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Smoothed detector score</span>
+          <span id="statSmoothed" class="stat-value">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Contextual risk score</span>
+          <span id="statRisk" class="stat-value">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Windows analysed</span>
+          <span id="statWindows" class="stat-value">0</span>
+        </div>
+      </div>
+      <p class="hint">
+        The <strong>detector score</strong> is the model's raw output. The
+        <strong>contextual risk score</strong> additionally applies the demo
+        transaction multiplier. They are deliberately different values.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Score Timeline</h2>
+      <canvas id="timeline" height="220" aria-label="Timeline of window scores"></canvas>
+      <div class="legend">
+        <span><i class="swatch raw"></i>Detector score</span>
+        <span><i class="swatch smooth"></i>Smoothed</span>
+        <span><i class="swatch risk"></i>Contextual risk</span>
+        <span><i class="swatch thr"></i>Thresholds</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Recommendation</h2>
+      <p id="recommendation" class="recommendation">
+        Select an audio file and start the analysis.
+      </p>
+    </article>
+
+    <article id="finalCard" class="card final" hidden>
+      <h2>Final Result</h2>
+      <div class="final-grid">
+        <div><span class="stat-label">Synthetic voice risk</span>
+             <span id="finalScore" class="stat-value big">—</span></div>
+        <div><span class="stat-label">Risk state</span>
+             <span id="finalState" class="stat-value big">—</span></div>
+        <div><span class="stat-label">Windows analysed</span>
+             <span id="finalWindows" class="stat-value">—</span></div>
+        <div><span class="stat-label">Audio analysed</span>
+             <span id="finalAudio" class="stat-value">—</span></div>
+      </div>
+      <p id="finalRec" class="recommendation"></p>
+    </article>
+
+    <article id="errorCard" class="card error" hidden>
+      <h2>Errors</h2>
+      <ul id="errorList"></ul>
+    </article>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>
+    This demo processes the selected audio for analysis only. Audio is held in
+    memory, is not written to disk, and is not retained after the session ends.
+    Advisory output — SvarKavach never blocks a transaction.
+  </p>
+</footer>
+
+<script src="/static/app.js?v=3"></script>
+</body>
+</html>

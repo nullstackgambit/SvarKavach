@@ -1,0 +1,13 @@
+# SvarKavach — optional PyTorch detector (DETECTOR_PROVIDER=xlsr_aasist_torch).
+# Not required for the default ONNX path.
+#
+# CPU-only install (much smaller than the default PyPI wheel, which pulls in
+# several GB of CUDA packages):
+#   pip install -r requirements-torch.txt --index-url https://download.pytorch.org/whl/cpu
+#
+# CUDA install: follow https://pytorch.org/get-started/locally/ for the wheel
+# matching your driver, then `pip install transformers safetensors huggingface_hub`.
+torch>=2.4
+transformers>=4.44
+safetensors>=0.4
+huggingface_hub>=0.24
